@@ -1,6 +1,8 @@
 package util
 
 import (
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -47,7 +49,7 @@ type Dict struct {
 
 var dict_table map[string]*Dict
 
-func dict_eval_lookup(key string, _ int, context any) string {
+func dict_eval_lookup(key string, _ int, context any) (string, error) {
 	dict_name := context.(string)
 
 	if dict := dict_table[dict_name]; dict != nil {
@@ -55,10 +57,10 @@ func dict_eval_lookup(key string, _ int, context any) string {
 		if err != nil {
 			MsgFatal("dictionary %s: lookup %s: operation failed: %v", dict_name, key, err)
 		}
-		return val
+		return val, nil
 	}
 
-	return ""
+	return "", fmt.Errorf("lookup failed: key %s not found", key)
 }
 
 func DictEval(dict_name string, value string, recursive bool) string {
@@ -68,17 +70,18 @@ func DictEval(dict_name string, value string, recursive bool) string {
 	if recursive {
 		flags = MAC_EXP_FLAG_RECURSE
 	}
-	expand, err := MacExpand(value, flags, nil, dict_eval_lookup, dict_name)
-	if err != nil {
-		MsgFatal("dictionary %s: macro processing error %v", dict_name, err)
+	buf := strings.Builder{}
+	status := MacExpand(&buf, value, flags, nil, dict_eval_lookup, dict_name)
+	if status&MAC_PARSE_ERROR == MAC_PARSE_ERROR {
+		MsgFatal("dictionary %s: macro processing error", dict_name)
 	}
 
 	if MsgVerbose > 1 {
-		if value != expand {
-			MsgInfo("%s: expand %s -> %s", myname, value, expand)
+		if value != buf.String() {
+			MsgInfo("%s: expand %s -> %s", myname, value, buf.String())
 		} else {
 			MsgInfo("%s: const %s", myname, value)
 		}
 	}
-	return expand
+	return buf.String()
 }
