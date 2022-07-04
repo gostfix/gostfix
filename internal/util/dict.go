@@ -55,7 +55,7 @@ func dict_eval_lookup(key string, _ int, context any) (string, error) {
 	if dict := dict_table[dict_name]; dict != nil {
 		val, err := dict.Lookup(key)
 		if err != nil {
-			MsgFatal("dictionary %s: lookup %s: operation failed: %v", dict_name, key, err)
+			MsgFatal("operation failed", "dictionary", dict_name, "lookup", key, "error", err)
 		}
 		return val, nil
 	}
@@ -73,14 +73,14 @@ func DictEval(dict_name string, value string, recursive bool) string {
 	buf := strings.Builder{}
 	status := MacExpand(&buf, value, flags, nil, dict_eval_lookup, dict_name)
 	if status&MAC_PARSE_ERROR == MAC_PARSE_ERROR {
-		MsgFatal("dictionary %s: macro processing error", dict_name)
+		MsgFatal("macro processing error", "dictionary", dict_name)
 	}
 
 	if MsgVerbose > 1 {
 		if value != buf.String() {
-			MsgInfo("%s: expand %s -> %s", myname, value, buf.String())
+			MsgInfo("expand", "function", myname, "from", value, "to", buf.String())
 		} else {
-			MsgInfo("%s: const %s", myname, value)
+			MsgInfo("const", "function", myname, "value", value)
 		}
 	}
 	return buf.String()

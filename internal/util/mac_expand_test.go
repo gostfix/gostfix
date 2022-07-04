@@ -195,7 +195,7 @@ func length_relop_eval(left string, relop int, rite string) int {
 	case MAC_EXP_OP_TOK_GT:
 		return (mac_exp_op_res_bool[delta > 0])
 	default:
-		MsgPanic("%s: unknown operator: %d", myname, relop)
+		MsgPanic("unknown operator", "function", myname, "relop", relop)
 	}
 	return 0
 }

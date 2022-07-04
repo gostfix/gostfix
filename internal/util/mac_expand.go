@@ -116,13 +116,13 @@ func atol_or_die(strval string) int {
 	if n, err := strconv.Atoi(strval); err == nil {
 		return n
 	} else {
-		MsgFatal("mac_exp_eval: bad conversion: '%s'", strval)
+		MsgFatal("mac_exp_eval: bad conversion", "strval", strval)
 	}
 	return 0
 }
 
 func mac_exp_parse_error(mc *MacExpandContext, format string, a ...any) int {
-	MsgWarn(format, a...)
+	MsgWarnf(format, a...)
 	mc.Status |= MAC_PARSE_ERROR
 	return mc.Status
 }
@@ -150,7 +150,7 @@ func mac_exp_eval(left string, tok_val int, rite string) int {
 	case MAC_EXP_OP_TOK_GT:
 		return mac_exp_op_res_bool[delta > 0]
 	default:
-		MsgPanic("%s: unknown operator: %d", "mac_exp_eval", tok_val)
+		MsgPanic("unknown operator", "function", "mac_exp_eval", "tok_value", tok_val)
 	}
 	return MAC_EXP_OP_RES_ERROR
 }
@@ -161,10 +161,6 @@ func mac_exp_extract_curly_payload(mc *MacExpandContext, bp *RuneScanner) *strin
 	 * leading whitespace before the {. See MAC_EXP_FIND_LEFT_CURLY().
 	 */
 	level := 1
-
-	if bp.Peek() != '{' {
-		MsgWarn("dude, we are supposed to start with a '{'")
-	}
 
 	bp.Next() // skip the first opening brace
 	for ch := bp.Scan(); ; ch = bp.Scan() {
@@ -272,7 +268,7 @@ func mac_exp_parse_relational(mc *MacExpandContext, lookup *string, bp *RuneScan
 		case MAC_EXP_OP_RES_FALSE:
 			*lookup = MAC_EXP_BVAL_FALSE
 		default:
-			MsgPanic("mac_expand: unexpected operator result: %d", op_result)
+			MsgPanic("mac_expand: unexpected operator result", "op_result", op_result)
 		}
 	}
 
@@ -290,18 +286,18 @@ func mac_expand_add_relop(tok_list []int, suffix string, relop_eval func(string,
 	* Sanity checks.
 	 */
 	if !AllAlnum(suffix) {
-		MsgPanic("%s: bad operator suffix: %s", myname, suffix)
+		MsgPanic("bad operator suffix", "function", myname, "suffix", suffix)
 	}
 
 	for _, tok := range tok_list {
 		var exists bool
 		if tok_name, exists = mac_exp_op_table_str[tok]; !exists {
-			MsgPanic("%s: unknown token code: %d", myname, tok)
+			MsgPanic("unknown token code", "function", myname, "token", tok)
 		}
 		mac_exp_ext_key := fmt.Sprintf("%s%s", tok_name, suffix)
 
 		if _, exists = mac_exp_ext_table[mac_exp_ext_key]; exists {
-			MsgPanic("%s: duplicate key: %s", myname, mac_exp_ext_key)
+			MsgPanic("duplicate key", "function", myname, "key", mac_exp_ext_key)
 		}
 		mac_exp_ext_table[mac_exp_ext_key] = relop_eval
 	}
@@ -438,7 +434,7 @@ func mac_expand_callback(typ int, buf string, context interface{}) int {
 				mc.Result.WriteString(lookup)
 			}
 		default:
-			MsgPanic("%s: unknown operator code %d", myname, ch)
+			MsgPanic("unknown operator code", "function", myname, "code", ch)
 		}
 
 	} else if mc.Flags&MAC_EXP_FLAG_SCAN == 0 { // Literal text.

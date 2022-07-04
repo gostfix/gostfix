@@ -47,7 +47,7 @@ var paren map[rune]rune = map[rune]rune{
 func MacParse(value string, action func(int, string, interface{}) int, context interface{}) int {
 	myname := "MacParse"
 	if MsgVerbose > 1 {
-		MsgInfo("%s : %s", myname, value)
+		MsgInfo("entry", "function", myname, "value", value)
 	}
 
 	// our return value/error
@@ -83,7 +83,7 @@ func MacParse(value string, action func(int, string, interface{}) int, context i
 				for level > 0 {
 					ch = scan.Scan()
 					if ch == scanner.EOF {
-						MsgWarn("truncated macro reference: \"%s\"\n", value)
+						MsgWarn("truncated macro reference", "value", value)
 						status |= MAC_PARSE_ERROR
 						break
 					} else if ch == open {
@@ -107,7 +107,7 @@ func MacParse(value string, action func(int, string, interface{}) int, context i
 			}
 			if buf.Len() == 0 {
 				status |= MAC_PARSE_ERROR
-				MsgWarn("empty macro name: \"%s\"\n", value)
+				MsgWarn("empty macro name", "value", value)
 				break
 			}
 			status |= action(MAC_PARSE_EXPR, buf.String(), context)

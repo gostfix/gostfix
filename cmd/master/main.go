@@ -17,6 +17,10 @@ func main() {
 	// Initialize
 	syscall.Umask(077)
 
+	if os.Getenv(global.CONF_ENV_VERB) != "" {
+		util.MsgVerbose = 1
+	}
+
 	// Don't die when a process goes away unexpectedly
 	signal.Ignore(syscall.SIGPIPE)
 
@@ -40,11 +44,9 @@ func main() {
 	// TODO(alf): postfix closes all file descriptors from [3, 500)
 	// closefrom(3)
 
-	util.MsgInfo(global.MailTask(global.VarProcname))
-
 	// Initialize logging and exit handler.
-	// mail_log_client_init(mail_task(global.VarProcname),
-	// 	MAILLOG_CLIENT_FLAG_LOGWRITER_FALLBACK)
+	global.MailLogClientInit(global.MailTask(global.VarProcname),
+		global.MAILLOG_CLIENT_FLAG_LOGWRITER_FALLBACK)
 
 	/*
 	 * The mail system must be run by the superuser so it can revoke
