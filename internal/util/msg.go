@@ -11,6 +11,10 @@ func init() {
 	_logger, _ = zap.NewProduction()
 }
 
+func SetLogger(logger *zap.Logger) {
+	_logger = logger
+}
+
 func LoggerConfig(decorators map[string]string) {
 	var logger *zap.Logger = _logger
 	for k, v := range decorators {

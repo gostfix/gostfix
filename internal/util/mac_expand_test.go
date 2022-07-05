@@ -6,9 +6,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 )
 
 func TestMacExpand(t *testing.T) {
+
+	observedZapCore, observedLogs := observer.New(zap.InfoLevel)
+	observedLogger := zap.New(observedZapCore)
+	SetLogger(observedLogger)
+	_ = observedLogs
 
 	table := map[string]string{
 		"name1": "name1-value",
@@ -18,40 +25,41 @@ func TestMacExpand(t *testing.T) {
 		pattern string
 		status  int
 		result  string
+		logs    []string
 	}{
 		{pattern: "$name1", status: 0, result: "name1-value"},
-		{pattern: "$(name1", status: 1, result: ""},
+		{pattern: "$(name1", status: 1, result: "", logs: []string{"truncated macro reference"}},
 		{pattern: "$(name1)", status: 0, result: "name1-value"},
 		{pattern: "$( name1)", status: 0, result: "name1-value"},
 		{pattern: "$(name1 )", status: 0, result: "name1-value"},
-		{pattern: "$(na me1)", status: 1, result: ""},
-		{pattern: "${na me1}", status: 1, result: ""},
-		{pattern: "${${name1} != {}?name 1 defined, |$name1|$name2|}", status: 1, result: ""},
-		{pattern: "${ ${name1} != {}?name 1 defined, |$name1|$name2|}", status: 1, result: ""},
-		{pattern: "${ ${name1} ?name 1 defined, |$name1|$name2|}", status: 1, result: ""},
-		{pattern: "${{$name1} ? {name 1 defined, |$name1|$name2|} : {name 1 undefined, |$name1|$name2|} }", status: 1, result: ""},
-		{pattern: "${x{$name1} != {}?{name 1 defined, |$name1|$name2|}}", status: 1, result: ""},
-		{pattern: "${{$name1}x?{name 1 defined, |$name1|$name2|}}", status: 1, result: ""},
-		{pattern: "${{$name1} != {}x{name 1 defined, |$name1|$name2|}}", status: 1, result: ""},
+		{pattern: "$(na me1)", status: 1, result: "", logs: []string{"attribute name syntax error at: \"...na>>> me1\""}},
+		{pattern: "${na me1}", status: 1, result: "", logs: []string{"attribute name syntax error at: \"...na>>> me1\""}},
+		{pattern: "${${name1} != {}?name 1 defined, |$name1|$name2|}", status: 1, result: "", logs: []string{"attribute name syntax error at: \"...>>>${name1} != {}?name \""}},
+		{pattern: "${ ${name1} != {}?name 1 defined, |$name1|$name2|}", status: 1, result: "", logs: []string{"attribute name syntax error at: \"... >>>${name1} != {}?name \""}},
+		{pattern: "${ ${name1} ?name 1 defined, |$name1|$name2|}", status: 1, result: "", logs: []string{"attribute name syntax error at: \"... >>>${name1} ?name 1 def\""}},
+		{pattern: "${{$name1} ? {name 1 defined, |$name1|$name2|} : {name 1 undefined, |$name1|$name2|} }", status: 1, result: "", logs: []string{"\"==\" or \"!=\"\" or \"<\"\" or \"<=\"\" or \">=\"\" or \">\" expected at: \"...$name1}>>>? {name 1 defined, |$\""}},
+		{pattern: "${x{$name1} != {}?{name 1 defined, |$name1|$name2|}}", status: 1, result: "", logs: []string{"attribute name syntax error at: \"...x>>>{$name1} != {}?{name\""}},
+		{pattern: "${{$name1}x?{name 1 defined, |$name1|$name2|}}", status: 1, result: "", logs: []string{"\"==\" or \"!=\"\" or \"<\"\" or \"<=\"\" or \">=\"\" or \">\" expected at: \"...$name1}>>>x?{name 1 defined, |\""}},
+		{pattern: "${{$name1} != {}x{name 1 defined, |$name1|$name2|}}", status: 1, result: "", logs: []string{"\"?\" or \":\" expected at: \"...}>>>x{name 1 defined, |$\""}},
 		{pattern: "${{$name1} != {}?x{name 1 defined, |$name1|$name2|}}", status: 2, result: "x{name 1 defined, |name1-value||}"},
 		{pattern: "${{$name2} != {}?x{name 2 defined, |$name1|$name2|}:{name 2 undefined, |$name1|$name2|}}", status: 2, result: ""},
-		{pattern: "${{$name1} != {}?{name 1 defined, |$name1|$name2|}x}", status: 3, result: "name 1 defined, |name1-value||"},
-		{pattern: "${{$name1} != {}?{name 1 defined, |$name1|$name2|}x:{name 1 undefined, |$name1|$name2|}}", status: 3, result: "name 1 defined, |name1-value||"},
+		{pattern: "${{$name1} != {}?{name 1 defined, |$name1|$name2|}x}", status: 3, result: "name 1 defined, |name1-value||", logs: []string{"\":\" expected at: \"...name 1 defined, |$name1|$name2|}>>>x\""}},
+		{pattern: "${{$name1} != {}?{name 1 defined, |$name1|$name2|}x:{name 1 undefined, |$name1|$name2|}}", status: 3, result: "name 1 defined, |name1-value||", logs: []string{"\":\" expected at: \"...name 1 defined, |$name1|$name2|}>>>x:{name 1 undefined,\""}},
 		{pattern: "${{$name1} != {}?{name 1 defined, |$name1|$name2|}:x{name 1 undefined, |$name1|$name2|}}", status: 2, result: "name 1 defined, |name1-value||"},
 		{pattern: "${{$name2} != {}?{name 2 defined, |$name1|$name2|}:x{name 2 undefined, |$name1|$name2|}}", status: 2, result: "x{name 2 undefined, |name1-value||}"},
-		{pattern: "${{text}}", status: 1, result: ""},
-		{pattern: "${{text}?{non-empty}:{empty}}", status: 1, result: ""},
-		{pattern: "${{text} = {}}", status: 1, result: ""},
+		{pattern: "${{text}}", status: 1, result: "", logs: []string{"\"==\" or \"!=\"\" or \"<\"\" or \"<=\"\" or \">=\"\" or \">\" expected at: \"...text}>>>\""}},
+		{pattern: "${{text}?{non-empty}:{empty}}", status: 1, result: "", logs: []string{"\"==\" or \"!=\"\" or \"<\"\" or \"<=\"\" or \">=\"\" or \">\" expected at: \"...text}>>>?{non-empty}:{empty}\""}},
+		{pattern: "${{text} = {}}", status: 1, result: "", logs: []string{"\"==\" or \"!=\"\" or \"<\"\" or \"<=\"\" or \">=\"\" or \">\" expected at: \"...text}>>>= {}\""}},
 		{pattern: "${{${ name1}} == {}}", status: 0, result: ""},
 		{pattern: "${name1?{${ name1}}:{${name2}}}", status: 0, result: "name1-value"},
 		{pattern: "${name2?{${ name1}}:{${name2}}}", status: 2, result: ""},
 		{pattern: "${name2?{${name1}}:{${ name2}}}", status: 2, result: ""},
-		{pattern: "${name2:{${name1}}:{${name2}}}", status: 1, result: "name1-value"},
-		{pattern: "${name2?{${name1}}?{${name2}}}", status: 1, result: ""},
+		{pattern: "${name2:{${name1}}:{${name2}}}", status: 1, result: "name1-value", logs: []string{"unexpected input at: \"...${name1}}>>>:{${name2}}\""}},
+		{pattern: "${name2?{${name1}}?{${name2}}}", status: 1, result: "", logs: []string{"\":\" expected at: \"...${name1}}>>>?{${name2}}\""}},
 		{pattern: "${{${name1?bug:test}} != {bug:test}?{Error: NOT}:{Good:}} Postfix 2.11 compatible", status: 0, result: "Good: Postfix 2.11 compatible"},
 		{pattern: "${{${name1??bug}} != {?bug}?{Error: NOT}:{Good:}} Postfix 2.11 compatible", status: 0, result: "Good: Postfix 2.11 compatible"},
 		{pattern: "${{${name2::bug}} != {:bug}?{Error: NOT}:{Good:}} Postfix 2.11 compatible", status: 0, result: "Good: Postfix 2.11 compatible"},
-		{pattern: "${{xx}==(yy)?{oops}:{phew}}", status: 1, result: ""},
+		{pattern: "${{xx}==(yy)?{oops}:{phew}}", status: 1, result: "", logs: []string{"\"{expression}\" expected at: \"...{xx} ==>>>(yy)?{oops}:{phew}\""}},
 	}
 
 	// MsgVerbose = 2
@@ -68,6 +76,11 @@ func TestMacExpand(t *testing.T) {
 			}, table)
 			assert.Equal(t, tC.status, status)
 			assert.Equal(t, tC.result, result.String())
+			logs := observedLogs.TakeAll()
+			assert.Equal(t, len(tC.logs), len(logs))
+			for i := range tC.logs {
+				assert.Equal(t, tC.logs[i], logs[i].Message)
+			}
 		})
 	}
 }
