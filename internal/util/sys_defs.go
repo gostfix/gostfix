@@ -5,3 +5,5 @@ const (
 	CHARS_SPACE    string = " \t\r\n"  // word separator
 	CHARS_BRACE    string = "{}"       // grouping
 )
+
+const INTERNAL_LOCK int = MYFLOCK_STYLE_FLOCK

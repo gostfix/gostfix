@@ -283,7 +283,7 @@ func mac_expand_add_relop(tok_list []int, suffix string, relop_eval func(string,
 	// int    *tp;
 
 	/*
-	* Sanity checks.
+	 * Sanity checks.
 	 */
 	if !AllAlnum(suffix) {
 		MsgPanic("bad operator suffix", "function", myname, "suffix", suffix)

@@ -54,10 +54,10 @@ func main() {
 	 * to toss privileges.
 	 */
 	// if os.Getuid() != 0 {
-	// 	log.Fatalf("the master command is reserved for the superuser")
+	//     log.Fatalf("the master command is reserved for the superuser")
 	// }
 	// if util.Unsafe() {
-	// 	log.Fatalf("the master command must not run as a set-uid process")
+	//     log.Fatalf("the master command must not run as a set-uid process")
 	// }
 
 	var cli struct {
