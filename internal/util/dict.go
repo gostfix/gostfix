@@ -1,7 +1,9 @@
 package util
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 )
@@ -93,8 +95,8 @@ type Dict struct {
 	Name     string /* for diagnostics */
 	Flags    int    /* see below */
 	Lookup   func(string) (string, error)
-	Update   func(string, string) int
-	Delete   func(string) int
+	Update   func(string, string) error
+	Delete   func(string) error
 	Sequence func(int, *string, *string)
 	Lock     func(int) int
 	Close    func()
@@ -102,10 +104,8 @@ type Dict struct {
 	LockFd   int       /* for read/write lock */
 	StatFd   int       /* change detection */
 	ModTime  time.Time /* mod time at open */
-	// foldBuf  *string   /* key folding buffer */
-	Owner DictOwner /* provenance */
-	Error int       /* last operation only */
-	// DICT_JMP_BUF *jbuf;   /* exception handling */
+	Owner    DictOwner /* provenance */
+	Error    int       /* last operation only */
 	// struct DICT_UTF8_BACKUP *utf8_backup; /* see below */
 	// struct VSTRING *file_buf;  /* dict_file_to_buf() */
 	// struct VSTRING *file_b64;  /* dict_file_to_b64() */
@@ -128,7 +128,108 @@ const (
 	DICT_SEQ_FUN_NEXT  = 1 /* set cursor to next record */
 )
 
-var dict_table map[string]*Dict
+var dict_table map[string]*Dict = make(map[string]*Dict)
+
+func DictFindForUpdate(dict_name string) *Dict {
+	var dict *Dict
+	var exists bool
+	if dict, exists = dict_table[dict_name]; !exists {
+		dict = DictHtOpen(dict_name, 0, DICT_FLAG_NONE)
+		DictRegister(dict_name, dict)
+	}
+	return dict
+}
+
+func DictRegister(dict_name string, dict_info *Dict) {
+	if dict, exists := dict_table[dict_name]; !exists {
+		dict_table[dict_name] = dict_info
+	} else if dict != dict_info {
+		MsgPanic("dictionary name exists", "name", dict_name)
+	}
+	// TODO(alf): refcount increment here
+	if MsgVerbose > 1 {
+		MsgInfo("DictRegister", "name", dict_name, "refcount", 1)
+	}
+}
+
+func DictHandle(dict_name string) *Dict {
+	return dict_table[dict_name]
+}
+
+func DictUnregister(dict_name string) {
+	if _, exists := dict_table[dict_name]; !exists {
+		MsgPanic("non-existing dictionary", "name", dict_name)
+	}
+	if MsgVerbose > 1 {
+		MsgInfo("DictUnregister", "name", dict_name, "refcount", 1)
+	}
+	delete(dict_table, dict_name)
+}
+
+func DictUpdate(dict_name string, name string, value string) error {
+	if MsgVerbose > 1 {
+		MsgInfo("DictUpdate", "name", name, "value", value)
+	}
+	if dict, exists := dict_table[dict_name]; exists {
+		return dict.Update(name, value)
+	}
+	return fmt.Errorf("dict %s not found", dict_name)
+}
+
+func DictLookup(dict_name string, name string) string {
+	var value string
+	var err error
+	if dict, exists := dict_table[dict_name]; exists {
+		value, err = dict.Lookup(name)
+		if MsgVerbose > 1 {
+			if err == nil {
+				MsgInfo("DictLookup", "name", name, "value", value)
+			} else {
+				MsgInfo("DictLookup", "name", name, "value", "(error)")
+			}
+		}
+	} else {
+		if MsgVerbose > 1 {
+			MsgInfo("DictLookup", "name", name, "value", "(notfound)")
+		}
+	}
+	return value
+}
+
+func DictLoadFileXt(dict_name string, path string) error {
+	if fd, err := os.Open(path); err == nil {
+		DictLoadFp(dict_name, fd)
+		fd.Close()
+	}
+
+	return nil
+}
+
+func DictLoadFp(dict_name string, fd *os.File) {
+	dict := DictFindForUpdate(dict_name)
+
+	if _, err := fd.Stat(); err != nil {
+		MsgFatal("file stat failed", "name", fd.Name(), "error", err)
+	}
+
+	lline := LogicalLine{scan: bufio.NewReader(fd)}
+	for line, err := lline.Readllines(); err == nil; line, err = lline.Readllines() {
+		var name string
+		var val string
+		if name, val, err = SplitNameVal(line); err != nil {
+			MsgFatal("error processing dict", "dict", dict_name, "line", line, "lineno", lline.LineNo, "error", err)
+		}
+		if MsgVerbose > 1 {
+			MsgInfo("split", "name", name, "val", val)
+		}
+		if old, err := dict.Lookup(name); err == nil && old != val {
+			MsgWarn("overriding earlier entry", "file", fd.Name(), "lineno", lline.LineNo, "name", name, "value", old)
+		}
+		if err := dict.Update(name, val); err != nil {
+			MsgFatal("unable to update", "file", fd.Name(), "lineno", lline.LineNo, "type", dict.Type, "name", dict.Name)
+		}
+	}
+}
 
 func dict_eval_lookup(key string, _ int, context any) (string, error) {
 	dict_name := context.(string)

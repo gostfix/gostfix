@@ -28,25 +28,25 @@ func dict_ht_lookup(ht *dict_ht) func(string) (string, error) {
 	}
 }
 
-func dict_ht_update(ht *dict_ht) func(string, string) int {
-	return func(name string, value string) int {
+func dict_ht_update(ht *dict_ht) func(string, string) error {
+	return func(name string, value string) error {
 		if ht.Flags&DICT_FLAG_FOLD_FIX == DICT_FLAG_FOLD_FIX {
 			name = strings.ToLower(name)
 		}
 		ht.table[name] = value
-		return 0
+		return nil
 	}
 }
 
-func dict_ht_delete(ht *dict_ht) func(string) int {
-	return func(name string) int {
+func dict_ht_delete(ht *dict_ht) func(string) error {
+	return func(name string) error {
 		if ht.Flags&DICT_FLAG_FOLD_FIX == DICT_FLAG_FOLD_FIX {
 			name = strings.ToLower(name)
 		}
 		// we don't get an error if we try to delete something
 		// that doesn't exist
 		delete(ht.table, name)
-		return 0
+		return nil
 	}
 }
 

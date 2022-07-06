@@ -82,9 +82,11 @@ func (s *RuneScanner) Reset() {
 	s.Off = 0
 }
 
-func (s *RuneScanner) End() {
+func (s *RuneScanner) End(sync bool) {
 	s.Pos = len(s.buf)
-	s.Off = s.Pos
+	if sync {
+		s.Off = s.Pos
+	}
 }
 
 func (s *RuneScanner) PosString() string {

@@ -380,7 +380,7 @@ func mac_expand_callback(typ int, buf string, context interface{}) int {
 			} else {
 				str := scan.PosString()
 				res_iftrue = &str
-				scan.End()
+				scan.End(true)
 			}
 			if (lookup_err == nil && lookup != "") || (mc.Flags&MAC_EXP_FLAG_SCAN == MAC_EXP_FLAG_SCAN) {
 				mc.Status |= MacParse(*res_iftrue, mac_expand_callback, mc)
@@ -400,7 +400,7 @@ func mac_expand_callback(typ int, buf string, context interface{}) int {
 			} else {
 				str := scan.PosString()
 				res_iffalse = &str
-				scan.End()
+				scan.End(true)
 			}
 			if lookup_err != nil || lookup == "" || (mc.Flags&MAC_EXP_FLAG_SCAN == MAC_EXP_FLAG_SCAN) {
 				mc.Status |= MacParse(*res_iffalse, mac_expand_callback, mc)

@@ -1,6 +1,9 @@
 package global
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/gostfix/gostfix/internal/util"
 )
 
@@ -88,6 +91,61 @@ type CONFIG_NBOOL_TABLE struct {
 	Target *bool
 }
 
+func MailConfCheckDir(config_dir string) {
+	// TODO(alf): we may skip this check and allow any user
+	// to load the config file
+}
+
+func MailConfRead() {
+	MailConfSuck()
+	MailParamsInit()
+}
+
+func MailConfSuck() {
+	var config_dir string
+	if config_dir = os.Getenv(CONF_ENV_PATH); config_dir == "" {
+		config_dir = DEF_CONFIG_DIR
+	}
+	VarConfigDir = config_dir
+	SetMailConfStr(VAR_CONFIG_DIR, VarConfigDir)
+
+	// TODO(alf): This causes our config option to pass on the command
+	// line to fail unless we run as root.  Therefore, just disable
+	// for now.
+	// if VarConfigDir != DEF_CONFIG_DIR && util.Unsafe() {
+	// 	MailConfCheckDir(VarConfigDir)
+	// }
+	file := filepath.Join(VarConfigDir, "main.cf")
+	if err := util.DictLoadFileXt(CONFIG_DICT, file); err != nil {
+		util.MsgFatal("DictLoadFileXt failed", "file", file, "error", err)
+	}
+}
+
+func MailConfFlush() {
+	if dict := util.DictHandle(CONFIG_DICT); dict != nil {
+		util.DictUnregister(CONFIG_DICT)
+	}
+}
 func MailConfEval(str string) string {
 	return util.DictEval(CONFIG_DICT, str, true)
+}
+
+func MailConfEvalOnce(str string) string {
+	return util.DictEval(CONFIG_DICT, str, false)
+}
+
+func MailConfLookup(name string) string {
+	return util.DictLookup(CONFIG_DICT, name)
+}
+
+func MailConfLookupEval(name string) string {
+	var value string = ""
+	if value = util.DictLookup(CONFIG_DICT, name); value != "" {
+		value = util.DictEval(CONFIG_DICT, value, true)
+	}
+	return value
+}
+
+func MailConfUpdate(key string, value string) {
+	util.DictUpdate(CONFIG_DICT, key, value)
 }

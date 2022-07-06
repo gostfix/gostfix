@@ -1,28 +1,28 @@
 package util
 
 import (
-	"fmt"
+	"errors"
 	"time"
 )
 
 func dict_lookup(dict *Dict) func(string) (string, error) {
 	return func(name string) (string, error) {
 		MsgFatal("lookup operation not supported", "type", dict.Type, "name", dict.Name)
-		return "", fmt.Errorf("lookup operation not supported")
+		return "", errors.New("lookup operation not supported")
 	}
 }
 
-func dict_update(dict *Dict) func(string, string) int {
-	return func(name string, value string) int {
+func dict_update(dict *Dict) func(string, string) error {
+	return func(name string, value string) error {
 		MsgFatal("update operation not supported", "type", dict.Type, "name", dict.Name)
-		return 0
+		return errors.New("update operation not supported")
 	}
 }
 
-func dict_delete(dict *Dict) func(string) int {
-	return func(name string) int {
+func dict_delete(dict *Dict) func(string) error {
+	return func(name string) error {
 		MsgFatal("delete operation not supported", "type", dict.Type, "name", dict.Name)
-		return 0
+		return errors.New("delete operation not supported")
 	}
 }
 
