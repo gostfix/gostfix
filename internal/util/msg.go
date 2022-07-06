@@ -8,7 +8,9 @@ var MsgVerbose int = 0
 var _logger *zap.Logger = nil
 
 func init() {
-	_logger, _ = zap.NewProduction()
+	config := zap.NewProductionConfig()
+	config.OutputPaths = []string{"stdout"}
+	_logger, _ = config.Build()
 }
 
 func SetLogger(logger *zap.Logger) {
