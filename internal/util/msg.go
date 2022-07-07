@@ -2,6 +2,7 @@ package util
 
 import (
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var MsgVerbose int = 0
@@ -10,7 +11,9 @@ var _logger *zap.Logger = nil
 func init() {
 	config := zap.NewProductionConfig()
 	config.OutputPaths = []string{"stdout"}
+	config.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
 	_logger, _ = config.Build()
+	_logger = _logger.WithOptions(zap.AddCallerSkip(1))
 }
 
 func SetLogger(logger *zap.Logger) {
