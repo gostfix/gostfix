@@ -28,6 +28,8 @@ func main() {
 			"CONF_ENV_PATH": global.CONF_ENV_PATH,
 			"CONF_ENV_VERB": global.CONF_ENV_VERB,
 		})
+
+	defer util.GetLogger().Sync()
 	_ = ctx
 
 	var queue_names = []string{

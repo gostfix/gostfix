@@ -1,77 +1,111 @@
 package util
 
 import (
+	"time"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 var MsgVerbose int = 0
-var _logger *zap.Logger = nil
+var zapLog *zap.Logger = nil
 
 func init() {
-	config := zap.NewProductionConfig()
+	// config := zap.NewProductionConfig()
+	config := zap.NewDevelopmentConfig()
+
+	// set output path to stdout so we can pipe results through jq or greap
 	config.OutputPaths = []string{"stdout"}
-	config.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
-	_logger, _ = config.Build()
-	_logger = _logger.WithOptions(zap.AddCallerSkip(1))
+	// log time in a readable format (e.g. 2022-07-07T00:52:25.135303Z), this sets to UTC timezone
+	config.EncoderConfig.EncodeTime = zapcore.TimeEncoder(func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+		enc.AppendString(t.UTC().Format(time.RFC3339Nano))
+	})
+
+	// only enable color encoding if the output is not full json
+	// NOTE(alf): this should be done just before config.Build to make
+	// sure the encode level isn't changed after this check.
+	// zapcore.CapitalColorLevelEncoder with config.Encoding == "json" causes
+	// console escape characters in the json string.
+	if config.Encoding == "console" {
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	} else {
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+	}
+
+	zapLog, _ = config.Build()
+	// Since we wrap our logger with custom methods, we want to skip 1 level up the
+	// call chain to report the proper logging code location.
+	zapLog = zapLog.WithOptions(zap.AddCallerSkip(1))
 }
 
 func SetLogger(logger *zap.Logger) {
-	_logger = logger
+	zapLog = logger
+}
+
+func GetLogger() *zap.Logger {
+	return zapLog
 }
 
 func LoggerConfig(decorators map[string]string) {
-	var logger *zap.Logger = _logger
+	var logger *zap.Logger = zapLog
 	for k, v := range decorators {
 		logger = logger.With(zap.String(k, v))
 	}
-	_logger = logger
+	zapLog = logger
+}
+
+func MsgDPanic(msg string, kv ...any) {
+	zapLog.Sugar().DPanicw(msg, kv...)
+}
+
+func MsgDPanicf(format string, a ...any) {
+	zapLog.Sugar().DPanicf(format, a...)
 }
 
 func MsgPanic(msg string, kv ...any) {
-	_logger.Sugar().Panicw(msg, kv...)
+	zapLog.Sugar().Panicw(msg, kv...)
 }
 
 func MsgPanicf(format string, a ...any) {
-	_logger.Sugar().Panicf(format, a...)
+	zapLog.Sugar().Panicf(format, a...)
 }
 
 func MsgFatal(msg string, kv ...any) {
-	_logger.Sugar().Fatalw(msg, kv...)
+	zapLog.Sugar().Fatalw(msg, kv...)
 }
 
 func MsgFatalf(format string, a ...any) {
-	_logger.Sugar().Fatalf(format, a...)
+	zapLog.Sugar().Fatalf(format, a...)
 }
 
 func MsgError(msg string, kv ...any) {
-	_logger.Sugar().Errorw(msg, kv...)
+	zapLog.Sugar().Errorw(msg, kv...)
 }
 
 func MsgErrorf(format string, a ...any) {
-	_logger.Sugar().Errorf(format, a...)
+	zapLog.Sugar().Errorf(format, a...)
 }
 
 func MsgWarn(msg string, kv ...any) {
-	_logger.Sugar().Warnw(msg, kv...)
+	zapLog.Sugar().Warnw(msg, kv...)
 }
 
 func MsgWarnf(format string, a ...any) {
-	_logger.Sugar().Warnf(format, a...)
+	zapLog.Sugar().Warnf(format, a...)
 }
 
 func MsgInfo(msg string, kv ...any) {
-	_logger.Sugar().Infow(msg, kv...)
+	zapLog.Sugar().Infow(msg, kv...)
 }
 
 func MsgInfof(format string, a ...any) {
-	_logger.Sugar().Infof(format, a...)
+	zapLog.Sugar().Infof(format, a...)
 }
 
 func MsgDebug(msg string, kv ...any) {
-	_logger.Sugar().Debugw(msg, kv...)
+	zapLog.Sugar().Debugw(msg, kv...)
 }
 
 func MsgDebugf(format string, a ...any) {
-	_logger.Sugar().Debugf(format, a...)
+	zapLog.Sugar().Debugf(format, a...)
 }
