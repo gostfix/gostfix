@@ -1,5 +1,7 @@
 package postcat
 
+import "io"
+
 /* Application-specific. */
 const (
 	PC_FLAG_SEARCH_QUEUE    = (1 << 0) /* search queue */
@@ -25,3 +27,7 @@ const (
 	PC_STATE_HEADER = 1 /* primary header */
 	PC_STATE_BODY   = 2 /* other */
 )
+
+func Postcat(rd io.Reader, flags int) {
+
+}

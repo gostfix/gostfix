@@ -64,6 +64,37 @@ const DEF_SYSLOG_NAME string = "${" + VAR_MULTI_NAME + "?{$" + VAR_MULTI_NAME + 
 
 var VarSyslogName string
 
+/*
+ * Location of the mail queue directory tree.
+ */
+const VAR_QUEUE_DIR = "queue_directory"
+const DEF_QUEUE_DIR = "/var/spool/postfix"
+
+var VarQueueDir string
+
+/*
+ * Queue management: what queues are hashed behind a forest of
+ * subdirectories, and how deep the forest is.
+ */
+const VAR_HASH_QUEUE_NAMES = "hash_queue_names"
+const DEF_HASH_QUEUE_NAMES = "deferred, defer"
+
+var VarHashQueueNames string
+
+const VAR_HASH_QUEUE_DEPTH = "hash_queue_depth"
+const DEF_HASH_QUEUE_DEPTH = 1
+
+var VarHashQueueDepth int
+
+/*
+ * Short queue IDs contain the time in microseconds and file inode number.
+ * Long queue IDs also contain the time in seconds.
+ */
+const VAR_LONG_QUEUE_IDS = "enable_long_queue_ids"
+const DEF_LONG_QUEUE_IDS = false
+
+var VarLongQueueIds bool
+
 const VAR_SMTPD_SOFT_ERLIM string = "smtpd_soft_error_limit"
 const DEF_SMTPD_SOFT_ERLIM string = "10"
 
@@ -71,6 +102,17 @@ var VarSmtpdSoftErlim int
 
 const VAR_MASTER_DISABLE string = "master_service_disable"
 const DEF_MASTER_DISABLE string = ""
+
+/*
+ * Environmental management - what Postfix imports from the external world,
+ * and what Postfix exports to the external world.
+ */
+const VAR_IMPORT_ENVIRON string = "import_environment"
+const DEF_IMPORT_ENVIRON string = `MAIL_CONFIG MAIL_DEBUG MAIL_LOGTAG 
+	TZ XAUTHORITY DISPLAY LANG=C 
+	POSTLOG_SERVICE POSTLOG_HOSTNAME`
+
+var VarImportEnviron string
 
 func MailParamsInit() {
 	var compat_level_defaults = []CONFIG_STR_TABLE{

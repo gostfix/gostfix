@@ -15,7 +15,6 @@ func TestMacExpand(t *testing.T) {
 	observedZapCore, observedLogs := observer.New(zap.InfoLevel)
 	observedLogger := zap.New(observedZapCore)
 	SetLogger(observedLogger)
-	_ = observedLogs
 
 	table := map[string]string{
 		"name1": "name1-value",

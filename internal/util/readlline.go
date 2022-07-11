@@ -84,6 +84,6 @@ func (ll *LogicalLine) Readllines() (string, error) {
 	if linebuf.Len() == 0 {
 		return "", errors.New("end of file")
 	}
-	// MsgInfo("lline", "line", linebuf.String())
+
 	return linebuf.String(), nil
 }
