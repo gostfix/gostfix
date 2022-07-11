@@ -17,3 +17,6 @@
 /go.mod
 /go.sum
 /vendor/
+
+# vscode configs
+/.vscode/
